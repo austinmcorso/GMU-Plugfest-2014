@@ -10,29 +10,42 @@
   stroke-width: .5px;
   stroke-linejoin: round;
 }
-
 .graticule {
   fill: none;
   stroke: #000;
   stroke-opacity: .3;
   stroke-width: .5px;
 }
-
 .graticule-outline {
   fill: none;
   stroke: #333;
   stroke-width: 1.5px;
 }
-
-text {
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-size: 18px;
-  font-weight: bold;
-  text-anchor: middle;
+.data-panel {
+  text-align: center;
+  width: 960px;
+}
+.data-panel ul {
+  list-style: none;
+}
+.data-panel ul li {
+  padding: 10px;
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  font-weight: 800;
+}
+.data-panel ul li span {
+  font-weight: 500;
+  padding-left: 5px;
 }
 
 </style>
 <body>
+<div class="data-panel">
+  <ul>
+    <li>Attack originating from:<span id="attacker"></span></li>
+  </ul>
+</div>
+<svg></svg>
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <script src="http://d3js.org/topojson.v0.min.js"></script>
 <script>
@@ -54,7 +67,7 @@ var path = d3.geo.path()
 var graticule = d3.geo.graticule()
     .extent([[-180, -90], [180 - .1, 90 - .1]]);
 
-var svg = d3.select("body").append("svg")
+var svg = d3.select("svg")
     .attr("width", width)
     .attr("height", height);
 
@@ -63,15 +76,14 @@ var line = svg.append("path")
     .attr("class", "graticule")
     .attr("d", path);
 
+var attacker = document.getElementById("attacker");
+var defender = document.getElementById("defender");
+
 svg.append("circle")
     .attr("class", "graticule-outline")
     .attr("cx", width / 2)
     .attr("cy", height / 2)
     .attr("r", projection.scale());
-
-/*var title = svg.append("text")
-    .attr("x", width / 2)
-    .attr("y", height * 3 / 5);*/
 
 d3.json("world.json", function(error, world) {
   var countries = topojson.object(world, world.objects.countries).geometries,
@@ -83,22 +95,33 @@ d3.json("world.json", function(error, world) {
     .enter().insert("path", ".graticule")
       .attr("class", "country")
       .attr("d", path);
-
   step();
 
   function step() {
-    if (++i >= n) i = 0;
+    // set increased weight for China
+    if (i != 30 && (Math.floor((Math.random() * (4)) + 1) == 1))
+      i = 30;
+    else
+      i = Math.floor((Math.random() * (n-1)) + 1);
+    var target = countries[i];
 
-    //title.text(countries[i].id);
+    attacker.innerHTML = target.id;
 
+    //fill country attacker
     country.transition()
-        .style("fill", function(d, j) { return j === i ? "red" : "#b8b8b8"; });
+        .style("fill", function(d, j) {
+            if (j === i)
+              return "#C00000";
+            else
+              return "#b8b8b8";
+          });
 
+    //rotate globe
     d3.transition()
-        .delay(250)
+        //.delay(250)
         .duration(1250)
         .tween("rotate", function() {
-          var point = centroid(countries[i]),
+          var point = centroid(target),
               rotate = d3.interpolate(projection.rotate(), [-point[0], -point[1]]);
           return function(t) {
             projection.rotate(rotate(t));
